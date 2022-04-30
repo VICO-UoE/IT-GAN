@@ -4,3 +4,14 @@
 
 The experiment data have been released in [Google Drive](https://drive.google.com/drive/folders/1qyxK4XxboBRuQVwesxQTSx-Vpcp1fCeS?usp=sharing).
 The release data include: [1] pretrained BigGAN Generators; [2] GAN Inversion learned latent vectors (z); [3] IT-GAN learned latent vectors (z). 
+
+### Citation
+```
+@article{zhao2022synthesizing,
+  title={Synthesizing Informative Training Samples with GAN},
+  author={Zhao, Bo and Bilen, Hakan},
+  journal={arXiv preprint arXiv:2204.07513},
+  year={2022}
+}
+```
+

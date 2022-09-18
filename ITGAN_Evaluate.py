@@ -34,9 +34,9 @@ def main():
 
     if args.diffaug_choice == 'Auto':
         if args.dataset in ['MNIST', 'SVHN']:
-            args.diffaug_choice = 'color_translation_cutout_scale_rotate'
+            args.diffaug_choice = 'color_crop_cutout_scale_rotate'
         elif args.dataset in ['FashionMNIST', 'CIFAR10', 'CIFAR100']:
-            args.diffaug_choice = 'color_translation_cutout_flip_scale_rotate'
+            args.diffaug_choice = 'color_crop_cutout_flip_scale_rotate'
         else:
             exit('Auto diffaug_choice is not defined for dataset: %s' % args.dataset)
     else:

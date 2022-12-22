@@ -12,7 +12,7 @@ Currently, we provide some raw codes which have been neither re-organized nor va
 @article{zhao2022synthesizing,
   title={Synthesizing Informative Training Samples with GAN},
   author={Zhao, Bo and Bilen, Hakan},
-  journal={arXiv preprint arXiv:2204.07513},
+  journal={NeurIPS 2022 Workshop on Synthetic Data for Empowering ML Research},
   year={2022}
 }
 ```

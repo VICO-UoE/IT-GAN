@@ -102,67 +102,6 @@ def get_dataset(dataset, data_path):
 
 
 
-def get_ImageNet(data_path, resolution=224, class_idx=-1):
-    channel = 3
-    im_size = (resolution, resolution)
-    num_classes = 1000
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
-    transform = transforms.Compose([transforms.Resize(resolution), transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
-    class_names = None
-
-    if class_idx == -1: # validation
-        dst = datasets.ImageFolder(os.path.join(data_path, 'val'), transform=transform)
-        # print(dst.classes)
-        # print(dst.len)
-    else: # train class # Todo: check whether train and val have the same class order/index
-        dst = datasets.ImageFolder(os.path.join(data_path, 'train'), transform=transform)
-        # print(dst.classes)
-        # dst = torch.utils.data.Subset(dst, np.argwhere(np.equal(dst.targets, class_idx)))
-        dst = torch.utils.data.Subset(dst, np.equal(dst.targets, class_idx))
-
-    # if class_idx == -1: # validation
-    #     folders = os.listdir(os.path.join(data_path, 'train'))
-    #     folders = [fld for fld in folders if fld[0] == 'n']
-    #     folders.sort()
-    #     for fld in folders:
-    #         dst = datasets.ImageFolder(os.path.join(data_path, 'val'), transform=transform)
-    # else: # train class
-    #     folders = os.listdir(os.path.join(data_path, 'train'))
-    #     folders = [fld for fld in folders if fld[0] == 'n']
-    #     folders.sort()
-    #     fld = folders[class_idx]
-    #     dst = datasets.ImageFolder(os.path.join(data_path, 'train', fld), transform=transform)
-
-    # data = torch.load(os.path.join(data_path, 'tinyimagenet.pt'), map_location='cpu')
-    #
-    # class_names = data['classes']
-    #
-    # images_train = data['images_train']
-    # labels_train = data['labels_train']
-    # images_train = images_train.detach().float() / 255.0
-    # labels_train = labels_train.detach()
-    # for c in range(channel):
-    #     images_train[:, c] = (images_train[:, c] - mean[c]) / std[c]
-    # dst_train = TensorDataset(images_train, labels_train)  # no augmentation
-    #
-    # images_val = data['images_val']
-    # labels_val = data['labels_val']
-    # images_val = images_val.detach().float() / 255.0
-    # labels_val = labels_val.detach()
-    #
-    # for c in range(channel):
-    #     images_val[:, c] = (images_val[:, c] - mean[c]) / std[c]
-    #
-    # dst_test = TensorDataset(images_val, labels_val)  # no augmentation
-    #
-    # testloader = torch.utils.data.DataLoader(dst_test, batch_size=256, shuffle=False, num_workers=0)
-
-
-    return channel, im_size, num_classes, class_names, mean, std, dst
-
-
-
 class TensorDataset(Dataset):
     def __init__(self, images, labels): # images: n x c x h x w tensor
         self.images = images.detach().float()

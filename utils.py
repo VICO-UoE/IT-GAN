@@ -663,3 +663,115 @@ def embedding_func(embed, imgs, batchsize):  # embedding function
         feats.append(feat)
     feats = torch.cat(feats, dim=0)
     return feats
+
+
+def get_pretrained_networks(net_mode, root_path, dataset, model, acc_net_min, acc_net_max):
+    if net_mode == 'min_max':
+        ''' load networks for once for individual network distribution'''
+        networks = []
+        networks_iterations = []
+        networks_accs_train = []
+        networks_accs_test = []
+        for block_i in range(10):
+            t0 = time.time()
+            if model == 'resnet20':
+                fpath = os.path.join(root_path, 'results/md_netmatrix/netmatrix_%s_%s_lr0.10_block_%02d_20200417.pt' % (dataset, model, block_i))
+            else:
+                fpath = os.path.join(root_path, 'results/md_netmatrix/netmatrix_%s_%s_lr0.01_block_%02d_20200417.pt' % (dataset, model, block_i))
+            print('processing: ', fpath)
+            data_block = torch.load(fpath, map_location='cpu')['block']
+
+            networks_tmp = []
+            networks_iterations_tmp = []
+            networks_accs_train_tmp = []
+            networks_accs_test_tmp = []
+            for j in range(100):
+                networks_tmp += data_block[j]['networks']
+                networks_iterations_tmp += data_block[j]['iterations']
+                networks_accs_train_tmp += data_block[j]['accs_train']
+                networks_accs_test_tmp += data_block[j]['accs_test']
+
+            for idx in np.random.permutation(len(networks_accs_test_tmp)).tolist():  # range(len(networks_accs_test_tmp)):
+                if networks_accs_test_tmp[idx] >= acc_net_min and networks_accs_test_tmp[idx] <= acc_net_max:
+                    networks.append(networks_tmp[idx])
+                    networks_iterations.append(networks_iterations_tmp[idx])
+                    networks_accs_train.append(networks_accs_train_tmp[idx])
+                    networks_accs_test.append(networks_accs_test_tmp[idx])
+
+                if len(networks) >= (block_i + 1) * 500:
+                    break
+
+            t1 = time.time()
+            # print('take %.1fs to load block ' % (t1 - t0), block_i, 'network size = %d' % len(networks_tmp))
+            print('take %.1fs to load block ' % (t1 - t0), block_i, 'current network size = %d' % len(networks))
+            del networks_tmp, networks_iterations_tmp, networks_accs_train_tmp, networks_accs_test_tmp
+            gc.collect()
+
+        netidx_valid = np.arange(len(networks)).tolist()
+        print('in total, load %d valid [%.1f, %.1f] networks for optimization' % (len(netidx_valid), acc_net_min, acc_net_max))
+
+
+    elif net_mode == 'evenly':
+        ''' evenly sample networks based on accuracies '''
+        networks = []
+        networks_iterations = []
+        networks_accs_train = []
+        networks_accs_test = []
+
+        # maximum = {'MNIST': 100, 'FashionMNIST': 100, 'SVHN': 60, 'CIFAR10': 200, 'CIFAR100': 300}
+        maximum = {'MNIST': 60, 'FashionMNIST': 60, 'SVHN': 60, 'CIFAR10': 60, 'CIFAR100': 60} # per acc, usually x 7
+        maximum = maximum[dataset]
+
+        for block_i in range(10):
+            t0 = time.time()
+            # if model == 'resnet20':
+            #     data_block = torch.load(os.path.join(root_path, 'results/md_netmatrix/netmatrix_%s_%s_lr0.10_block_%02d_20200417.pt' % (dataset, model, block_i)), map_location='cpu')['block']
+            # else:
+            fpath = os.path.join(root_path, 'results/md_netmatrix/netmatrix_%s_%s_lr0.01_block_%02d_20200417.pt' % (dataset, model, block_i))
+            print('processing: ', fpath)
+            data_block = torch.load(fpath, map_location='cpu')['block']
+
+            networks_tmp = []
+            networks_iterations_tmp = []
+            networks_accs_train_tmp = []
+            networks_accs_test_tmp = []
+            count = np.zeros(10, dtype=int)  # per acc per block, usually x 10 x 7
+            for j in range(100):
+                networks_tmp += data_block[j]['networks']
+                networks_iterations_tmp += data_block[j]['iterations']
+                networks_accs_train_tmp += data_block[j]['accs_train']
+                networks_accs_test_tmp += data_block[j]['accs_test']
+
+            for idx in np.random.permutation(len(networks_accs_test_tmp)).tolist():  # range(len(networks_accs_test_tmp)):
+                acc_ = networks_accs_test_tmp[idx]
+                if acc_ >= acc_net_min and acc_ <= acc_net_max and count[int(acc_ * 10)] < maximum:
+                    count[int(acc_ * 10)] += 1
+                    networks.append(networks_tmp[idx])
+                    networks_iterations.append(networks_iterations_tmp[idx])
+                    networks_accs_train.append(networks_accs_train_tmp[idx])
+                    networks_accs_test.append(networks_accs_test_tmp[idx])
+
+            t1 = time.time()
+            # print('take %.1fs to load block ' % (t1 - t0), block_i, 'network size = %d' % len(networks_tmp))
+            print('take %.1fs to load block ' % (t1 - t0), block_i, 'current network size = %d' % len(networks))
+            del networks_tmp, networks_iterations_tmp, networks_accs_train_tmp, networks_accs_test_tmp
+            gc.collect()
+
+        netidx_valid = np.arange(len(networks)).tolist()
+        print('in total, load %d valid [%.1f, %.1f] evenly distributed networks for optimization' % (len(netidx_valid), acc_net_min, acc_net_max))
+
+
+    else:
+        networks = None
+        exit('unknown net_mode: %s' % net_mode)
+
+    return networks
+
+def save_image_tensor(imgs, mean, std, save_name, nprow):
+    imgs_vis = copy.deepcopy(imgs.detach().cpu())
+    channel = len(mean)
+    for ch in range(channel):
+        imgs_vis[:, ch] = imgs_vis[:, ch] * std[ch] + mean[ch]
+    imgs_vis[imgs_vis < 0] = 0.0
+    imgs_vis[imgs_vis > 1] = 1.0
+    save_image(imgs_vis, save_name, nrow=nprow)
